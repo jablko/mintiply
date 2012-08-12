@@ -1,4 +1,4 @@
-import base64, hashlib, os
+import base64, hashlib, os, sys
 from google.appengine.api import urlfetch
 from google.appengine.ext import db
 
@@ -17,15 +17,23 @@ except ValueError:
   m = hashlib.sha256()
 
   result = urlfetch.fetch(url,
-    allow_truncated=True)
+    allow_truncated=True,
+    deadline=sys.maxint,
+
+    # http://code.google.com/p/googleappengine/issues/detail?id=5686
+    headers={ 'Range': 'bytes=0-' + str(2 ** 25 - 1) })
 
   m.update(result.content)
 
   firstBytePos = len(result.content)
-  while result.content_was_truncated:
+  while result.content_was_truncated or firstBytePos < int(result.headers['Content-Length']) or len(result.content) > 2 ** 25 - 1:
+
     result = urlfetch.fetch(url,
       allow_truncated=True,
-      headers={ 'Range': 'bytes={}-'.format(firstBytePos) })
+      deadline=sys.maxint,
+
+      # http://code.google.com/p/googleappengine/issues/detail?id=5686
+      headers={ 'Range': 'bytes={}-{}'.format(firstBytePos, firstBytePos + 2 ** 25 - 1) })
 
     m.update(result.content)
 
