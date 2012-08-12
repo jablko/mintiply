@@ -1,0 +1,9 @@
+api_version: 1
+application: mintiply
+runtime: python27
+threadsafe: false
+version: 1
+
+handlers:
+- url: /.*
+  script: mintiply.py
