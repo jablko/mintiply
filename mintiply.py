@@ -1,4 +1,4 @@
-import base64, hashlib, os, sys
+import base64, hashlib, os, re, sys
 from google.appengine.api import urlfetch
 from google.appengine.ext import db
 
@@ -10,6 +10,11 @@ class Object(db.Model):
 
 # Get URL to generate Metalink for from our path info
 url = os.environ['PATH_INFO'][1:]
+
+# Support URL without scheme
+if not re.match('[A-Za-z][-A-Za-z0-9+.]*:', url):
+  url = 'http://' + url
+
 if os.environ['QUERY_STRING']:
   url += '?' + os.environ['QUERY_STRING']
 
