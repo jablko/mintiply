@@ -1,12 +1,16 @@
-import binascii
-from mintiply import Object, object
+import binascii, urllib
+from mintiply import Object, object, url
+from os import path
+from urlparse import urlparse
 
 print 'Content-Type: application/metalink4+xml'
 
 print
 
 print '<metalink xmlns="urn:ietf:params:xml:ns:metalink">'
-print '  <file>'
+
+basename = path.basename(urllib.unquote(urlparse(url).path))
+print '  <file name="{}">'.format(basename)
 
 print '    <hash type="sha-256">{}</hash>'.format(binascii.hexlify(object.digest))
 
