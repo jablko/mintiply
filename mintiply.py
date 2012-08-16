@@ -1,4 +1,4 @@
-import base64, hashlib, os, re, sys
+import hashlib, os, re, sys
 from google.appengine.api import urlfetch
 from google.appengine.ext import db
 
@@ -11,7 +11,11 @@ class Object(db.Model):
 # Get URL to generate Metalink for from our path info
 url = os.environ['PATH_INFO'][1:]
 
-# Support URL without scheme
+# Handle URL without scheme
+#
+#   absolute-URI  = scheme ":" hier-part [ "?" query ]
+#   scheme        = ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )
+#
 if not re.match('[A-Za-z][-A-Za-z0-9+.]*:', url):
   url = 'http://' + url
 
@@ -19,9 +23,9 @@ if os.environ['QUERY_STRING']:
   url += '?' + os.environ['QUERY_STRING']
 
 # Check Datastore if the URL was already visited.  Currently we only visit a
-# URL once, and forever remember the metadata, which assumes that the URL never
-# changes.  This is true for many downloads, but in future we could respect
-# cache control headers
+# URL once, and forever remember the metadata, which assumes that the content
+# at the URL never changes.  This is true for many downloads, but in future we
+# could respect cache control headers
 try:
   object, = Object.gql('WHERE url = :1', url)
 
@@ -66,19 +70,3 @@ except ValueError:
   # Add URL to Datastore
   object = Object(digest=m.digest(), url=url)
   object.put()
-
-# Generate Metalink
-
-print 'Digest: SHA-256=' + base64.b64encode(object.digest)
-
-# Add "Link: <...>; rel=duplicate" header for each URL that was already visited
-# and that the digest we computed matches
-for duplicate in Object.gql('WHERE digest = :1', object.digest):
-
-  # This comparison is naive, in future we could normalize
-  if duplicate.url != url:
-    print 'Link: <{}>; rel=dulicate'.format(duplicate.url)
-
-# In future we could also send 3XX status code to redirect to the URL, or to a
-# preferred duplicate URL
-print 'Location: ' + url

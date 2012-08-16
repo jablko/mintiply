@@ -5,5 +5,8 @@ threadsafe: false
 version: 1
 
 handlers:
-- url: /.*
-  script: mintiply.py
+- url: /meta4/.+
+  script: xml.py
+
+- url: /.+
+  script: http.py
