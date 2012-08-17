@@ -1,11 +1,14 @@
-import hashlib, os, re, sys
+import hashlib, os, re, sys, urllib
 from google.appengine.api import urlfetch
 from google.appengine.ext import db
+from os import path
+from urlparse import urlparse
 
 # Datastore model about a URL that was already visited.  Currently just URL and
 # digest
 class Object(db.Model):
   digest = db.ByteStringProperty()
+  name = db.StringProperty()
   url = db.LinkProperty()
 
 # Get URL to generate Metalink for from our path info
@@ -32,7 +35,6 @@ try:
 # URL not found in Datastore, download the content, compute digest, and add to
 # Datastore
 except ValueError:
-  m = hashlib.sha256()
 
   result = urlfetch.fetch(url,
     allow_truncated=True,
@@ -41,6 +43,57 @@ except ValueError:
     # http://code.google.com/p/googleappengine/issues/detail?id=5686
     headers={ 'Range': 'bytes=0-' + str(2 ** 25 - 1) })
 
+  # content-disposition = "Content-Disposition" ":"
+  #                        disposition-type *( ";" disposition-parm )
+  # disposition-type    = "inline" | "attachment" | disp-ext-type
+  #                     ; case-insensitive
+  # disp-ext-type       = token
+  # disposition-parm    = filename-parm | disp-ext-parm
+  # filename-parm       = "filename" "=" value
+  #                     | "filename*" "=" ext-value
+  # disp-ext-parm       = token "=" value
+  #                     | ext-token "=" ext-value
+  # ext-token           = <the characters in token, followed by "*">
+
+  token = '[-!#-\'*+.\dA-Z^-z|~]+'
+  qdtext='[]-~\t !#-[]'
+  mimeCharset='[-!#-&+\dA-Z^-z]+'
+  language='(?:[A-Za-z]{2,3}(?:-[A-Za-z]{3}(?:-[A-Za-z]{3}){,2})?|[A-Za-z]{4,8})(?:-[A-Za-z]{4})?(?:-(?:[A-Za-z]{2}|\d{3}))(?:-(?:[\dA-Za-z]{5,8}|\d[\dA-Za-z]{3}))*(?:-[\dA-WY-Za-wy-z](?:-[\dA-Za-z]{2,8})+)*(?:-[Xx](?:-[\dA-Za-z]{1,8})+)?|[Xx](?:-[\dA-Za-z]{1,8})+|[Ee][Nn]-[Gg][Bb]-[Oo][Ee][Dd]|[Ii]-[Aa][Mm][Ii]|[Ii]-[Bb][Nn][Nn]|[Ii]-[Dd][Ee][Ff][Aa][Uu][Ll][Tt]|[Ii]-[Ee][Nn][Oo][Cc][Hh][Ii][Aa][Nn]|[Ii]-[Hh][Aa][Kk]|[Ii]-[Kk][Ll][Ii][Nn][Gg][Oo][Nn]|[Ii]-[Ll][Uu][Xx]|[Ii]-[Mm][Ii][Nn][Gg][Oo]|[Ii]-[Nn][Aa][Vv][Aa][Jj][Oo]|[Ii]-[Pp][Ww][Nn]|[Ii]-[Tt][Aa][Oo]|[Ii]-[Tt][Aa][Yy]|[Ii]-[Tt][Ss][Uu]|[Ss][Gg][Nn]-[Bb][Ee]-[Ff][Rr]|[Ss][Gg][Nn]-[Bb][Ee]-[Nn][Ll]|[Ss][Gg][Nn]-[Cc][Hh]-[Dd][Ee]'
+  valueChars = '(?:%[\dA-F][\dA-F]|[-!#$&+.\dA-Z^-z|~])*'
+  dispositionParm = '[Ff][Ii][Ll][Ee][Nn][Aa][Mm][Ee]\s*=\s*(?:({token})|"((?:{qdtext}|\\\\[\t !-~])*)")|[Ff][Ii][Ll][Ee][Nn][Aa][Mm][Ee]\*\s*=\s*({mimeCharset})\'(?:{language})?\'({valueChars})|{token}\s*=\s*(?:{token}|"(?:{qdtext}|\\\\[\t !-~])*")|{token}\*\s*=\s*{mimeCharset}\'(?:{language})?\'{valueChars}'.format(**locals())
+
+  try:
+    m = re.match('(?:{token}\s*;\s*)?(?:{dispositionParm})(?:\s*;\s*(?:{dispositionParm}))*|{token}'.format(**locals()), result.headers['Content-Disposition'])
+
+  except KeyError:
+    name = path.basename(urllib.unquote(urlparse(url).path))
+
+  else:
+    if not m:
+      name = path.basename(urllib.unquote(urlparse(url).path))
+
+    elif m.group(8) is not None:
+      name = urllib.unquote(m.group(8)).decode(m.group(7))
+
+    elif m.group(6) is not None:
+      name = re.sub('\\\\(.)', '\1', m.group(6))
+
+    elif m.group(5) is not None:
+      name = m.group(5)
+
+    elif m.group(4) is not None:
+      name = urllib.unquote(m.group(4)).decode(m.group(3))
+
+    elif m.group(2) is not None:
+      name = re.sub('\\\\(.)', '\1', m.group(2))
+
+    else:
+      name = m.group(1)
+
+    if not name:
+      name = path.basename(urllib.unquote(urlparse(url).path))
+
+  m = hashlib.sha256()
   m.update(result.content)
 
   # Use byte ranges to overcome App Engine maximum response size.  Because
@@ -68,5 +121,5 @@ except ValueError:
     firstBytePos += len(result.content)
 
   # Add URL to Datastore
-  object = Object(digest=m.digest(), url=url)
+  object = Object(digest=m.digest(), name=name, url=url)
   object.put()
