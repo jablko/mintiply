@@ -72,17 +72,22 @@ except ValueError:
     if not m:
       name = path.basename(urllib.unquote(urlparse(url).path))
 
+    # Many user agent implementations predating this specification do not
+    # understand the "filename*" parameter.  Therefore, when both "filename"
+    # and "filename*" are present in a single header field value, recipients
+    # SHOULD pick "filename*" and ignore "filename"
+
     elif m.group(8) is not None:
       name = urllib.unquote(m.group(8)).decode(m.group(7))
+
+    elif m.group(4) is not None:
+      name = urllib.unquote(m.group(4)).decode(m.group(3))
 
     elif m.group(6) is not None:
       name = re.sub('\\\\(.)', '\1', m.group(6))
 
     elif m.group(5) is not None:
       name = m.group(5)
-
-    elif m.group(4) is not None:
-      name = urllib.unquote(m.group(4)).decode(m.group(3))
 
     elif m.group(2) is not None:
       name = re.sub('\\\\(.)', '\1', m.group(2))
