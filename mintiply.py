@@ -95,7 +95,13 @@ except ValueError:
     else:
       name = m.group(1)
 
-    if not name:
+    # Recipients MUST NOT be able to write into any location other than one to
+    # which they are specifically entitled
+
+    if name:
+      name = path.basename(name)
+
+    else:
       name = path.basename(urllib.unquote(urlparse(url).path))
 
   m = hashlib.sha256()
