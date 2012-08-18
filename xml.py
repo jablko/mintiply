@@ -7,7 +7,7 @@ from mintiply import Object, object, url
 # What I *really* want is "iconv -t ASCII//TRANSLIT", why was the iconv module
 # dropped from Python 2.3?
 
-print 'Content-Disposition: filename="{}.meta4"; filename*=utf-8\'\'{}.meta4'.format(unicodedata.normalize('NFKD', object.name).encode('ascii', 'ignore').replace('"', '\\"'), urllib.quote(object.name.encode('utf-8')))
+print 'Content-Disposition: filename="{}.meta4"; filename*=utf-8\'\'{}.meta4'.format(unicodedata.normalize('NFKD', object.name).encode('ascii', 'ignore').replace('"', '\\"'), urllib.quote(object.name.encode('utf-8'), '!#$&+^`|~'))
 
 print 'Content-Type: application/metalink4+xml'
 
