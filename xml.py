@@ -34,6 +34,7 @@ print '<metalink xmlns="urn:ietf:params:xml:ns:metalink">'
 print '  <file name="{}">'.format(object.name.replace('<', '&lt;').replace('&', '&amp;').replace('"', '&quot;').encode('utf-8'))
 
 print '    <hash type="sha-256">{}</hash>'.format(object.digest.encode('hex'))
+print '    <size>{}</size>'.format(object.size)
 
 # Add <url/> element for each URL that was already visited and that the digest
 # we computed matches

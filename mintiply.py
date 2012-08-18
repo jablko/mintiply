@@ -9,6 +9,7 @@ from urlparse import urlparse
 class Object(db.Model):
   digest = db.ByteStringProperty()
   name = db.StringProperty()
+  size = db.IntegerProperty()
   url = db.LinkProperty()
 
 # content-disposition = "Content-Disposition" ":"
@@ -133,5 +134,5 @@ except ValueError:
     firstBytePos += len(result.content)
 
   # Add URL to Datastore
-  object = Object(digest=m.digest(), name=name, url=url)
+  object = Object(digest=m.digest(), name=name, size=firstBytePos, url=url)
   object.put()
