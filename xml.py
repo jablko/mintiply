@@ -1,12 +1,20 @@
+import unicodedata, urllib
 from mintiply import Object, object, url
 
-print 'Content-Disposition: filename="{}.meta4"'.format(object.name.replace('"', '\\"'))
+# The normal form KD (NFKD) will apply the compatibility decomposition, i.e.
+# replace all compatibility characters with their equivalents
+
+# What I *really* want is "iconv -t ASCII//TRANSLIT", why was the iconv module
+# dropped from Python 2.3?
+
+print 'Content-Disposition: filename="{}.meta4"; filename*=utf-8\'\'{}.meta4'.format(unicodedata.normalize('NFKD', object.name).encode('ascii', 'ignore').replace('"', '\\"'), urllib.quote(object.name.encode('utf-8')))
+
 print 'Content-Type: application/metalink4+xml'
 
 print
 
 print '<metalink xmlns="urn:ietf:params:xml:ns:metalink">'
-print '  <file name="{}">'.format(object.name.replace('<', '&lt;').replace('&', '&amp;').replace('"', '&quot;'))
+print '  <file name="{}">'.format(object.name.replace('<', '&lt;').replace('&', '&amp;').replace('"', '&quot;').encode('utf-8'))
 
 print '    <hash type="sha-256">{}</hash>'.format(object.digest.encode('hex'))
 
