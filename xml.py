@@ -1,4 +1,3 @@
-import binascii
 from mintiply import Object, object, url
 
 print 'Content-Disposition: filename="{}.meta4"'.format(object.name.replace('"', '\\"'))
@@ -9,7 +8,7 @@ print
 print '<metalink xmlns="urn:ietf:params:xml:ns:metalink">'
 print '  <file name="{}">'.format(object.name.replace('<', '&lt;').replace('&', '&amp;').replace('"', '&quot;'))
 
-print '    <hash type="sha-256">{}</hash>'.format(binascii.hexlify(object.digest))
+print '    <hash type="sha-256">{}</hash>'.format(object.digest.encode('hex'))
 
 # Add <url/> element for each URL that was already visited and that the digest
 # we computed matches
