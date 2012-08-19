@@ -1,5 +1,6 @@
-import base64, os, re
+import base64, os, re, urllib
 from mintiply import mintiply, Object
+from urlparse import urlparse, urlunparse
 
 # Get URL to generate Metalink for from our path info
 url = os.environ['PATH_INFO'][1:]
@@ -12,8 +13,13 @@ url = os.environ['PATH_INFO'][1:]
 if not re.match('[A-Za-z][-A-Za-z0-9+.]*:', url):
   url = 'http://' + url
 
+url = list(urlparse(url))
+url[2] = urllib.quote(url[2])
+
 if os.environ['QUERY_STRING']:
-  url += '?' + os.environ['QUERY_STRING']
+  url[4] = os.environ['QUERY_STRING']
+
+url = urlunparse(url)
 
 object = mintiply(url)
 
