@@ -1,5 +1,21 @@
-import re, unicodedata, urllib
-from mintiply import Object, object, token, url
+import os, re, unicodedata, urllib
+from mintiply import mintiply, Object, token
+
+# Get URL to generate Metalink for from our path info
+url = os.environ['PATH_INFO'][7:]
+
+# Handle URL without scheme
+#
+#   absolute-URI  = scheme ":" hier-part [ "?" query ]
+#   scheme        = ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )
+#
+if not re.match('[A-Za-z][-A-Za-z0-9+.]*:', url):
+  url = 'http://' + url
+
+if os.environ['QUERY_STRING']:
+  url += '?' + os.environ['QUERY_STRING']
+
+object = mintiply(url)
 
 m = re.match('[\t !-~]*$', object.name)
 if m:

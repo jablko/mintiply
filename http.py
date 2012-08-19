@@ -1,5 +1,21 @@
-import base64
-from mintiply import Object, object, url
+import base64, os, re
+from mintiply import mintiply, Object
+
+# Get URL to generate Metalink for from our path info
+url = os.environ['PATH_INFO'][1:]
+
+# Handle URL without scheme
+#
+#   absolute-URI  = scheme ":" hier-part [ "?" query ]
+#   scheme        = ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )
+#
+if not re.match('[A-Za-z][-A-Za-z0-9+.]*:', url):
+  url = 'http://' + url
+
+if os.environ['QUERY_STRING']:
+  url += '?' + os.environ['QUERY_STRING']
+
+object = mintiply(url)
 
 print 'Digest: SHA-256=' + base64.b64encode(object.digest)
 
