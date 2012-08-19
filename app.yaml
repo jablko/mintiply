@@ -5,6 +5,9 @@ threadsafe: false
 version: 1
 
 handlers:
+- url: /export
+  script: export.py
+
 - url: /meta4/.+
   script: xml.py
 
