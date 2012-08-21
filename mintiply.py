@@ -48,7 +48,7 @@ def mintiply(url):
       deadline=sys.maxint,
 
       # http://code.google.com/p/googleappengine/issues/detail?id=5686
-      headers={ 'Range': 'bytes=0-' + str(2 ** 25 - 1) })
+      headers={ 'Range': 'bytes=0-' + str(2 ** 24 - 1) })
 
     try:
 
@@ -108,14 +108,14 @@ def mintiply(url):
     #     suggesting that there is still more data, regardless of Content-Length
     #
     firstBytePos = len(result.content)
-    while result.content_was_truncated or firstBytePos < int(result.headers['Content-Length']) or len(result.content) > 2 ** 25 - 1:
+    while result.content_was_truncated or firstBytePos < int(result.headers['Content-Length']) or len(result.content) > 2 ** 24 - 1:
 
       result = urlfetch.fetch(url,
         allow_truncated=True,
         deadline=sys.maxint,
 
         # http://code.google.com/p/googleappengine/issues/detail?id=5686
-        headers={ 'Range': 'bytes={}-{}'.format(firstBytePos, firstBytePos + 2 ** 25 - 1) })
+        headers={ 'Range': 'bytes={}-{}'.format(firstBytePos, firstBytePos + 2 ** 24 - 1) })
 
       m.update(result.content)
 
