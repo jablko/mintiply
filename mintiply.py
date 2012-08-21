@@ -50,16 +50,19 @@ def mintiply(url):
       # http://code.google.com/p/googleappengine/issues/detail?id=5686
       headers={ 'Range': 'bytes=0-' + str(2 ** 24 - 1) })
 
+    digest = hashlib.sha256()
+    digest.update(result.content)
+
     try:
 
       # [ disposition-type ";" ] disposition-parm ( ";" disposition-parm )* / disposition-type
-      m = re.match('(?:{token}\s*;\s*)?(?:{dispositionParm})(?:\s*;\s*(?:{dispositionParm}))*|{token}'.format(**locals()), result.headers['Content-Disposition'])
+      match = re.match('(?:{token}\s*;\s*)?(?:{dispositionParm})(?:\s*;\s*(?:{dispositionParm}))*|{token}'.format(**locals()), result.headers['Content-Disposition'])
 
     except KeyError:
       name = path.basename(urllib.unquote(urlparse(url).path))
 
     else:
-      if not m:
+      if not match:
         name = path.basename(urllib.unquote(urlparse(url).path))
 
       # Many user agent implementations predating this specification do not
@@ -67,23 +70,23 @@ def mintiply(url):
       # and "filename*" are present in a single header field value, recipients
       # SHOULD pick "filename*" and ignore "filename"
 
-      elif m.group(8) is not None:
-        name = urllib.unquote(m.group(8)).decode(m.group(7))
+      elif match.group(8) is not None:
+        name = urllib.unquote(match.group(8)).decode(match.group(7))
 
-      elif m.group(4) is not None:
-        name = urllib.unquote(m.group(4)).decode(m.group(3))
+      elif match.group(4) is not None:
+        name = urllib.unquote(match.group(4)).decode(match.group(3))
 
-      elif m.group(6) is not None:
-        name = re.sub('\\\\(.)', '\1', m.group(6))
+      elif match.group(6) is not None:
+        name = re.sub('\\\\(.)', '\1', match.group(6))
 
-      elif m.group(5) is not None:
-        name = m.group(5)
+      elif match.group(5) is not None:
+        name = match.group(5)
 
-      elif m.group(2) is not None:
-        name = re.sub('\\\\(.)', '\1', m.group(2))
+      elif match.group(2) is not None:
+        name = re.sub('\\\\(.)', '\1', match.group(2))
 
       else:
-        name = m.group(1)
+        name = match.group(1)
 
       # Recipients MUST NOT be able to write into any location other than one to
       # which they are specifically entitled
@@ -94,35 +97,45 @@ def mintiply(url):
       else:
         name = path.basename(urllib.unquote(urlparse(url).path))
 
-    m = hashlib.sha256()
-    m.update(result.content)
-
-    # Use byte ranges to overcome App Engine maximum response size.  Because
-    # allow_truncated is broken (App Engine issue 5686) and because
-    # Content-Length is broken on some servers (e.g. they report message length
-    # vs. entity length), continue downloading if:
-    #
-    #   * content_was_truncated, or
-    #   * we so far downloaded less than Content-Length, or
-    #   * the last segment was as large as the byte range that was requested,
-    #     suggesting that there is still more data, regardless of Content-Length
-    #
+    # Use byte ranges to overcome App Engine maximum response size
     firstBytePos = len(result.content)
-    while result.content_was_truncated or firstBytePos < int(result.headers['Content-Length']) or len(result.content) > 2 ** 24 - 1:
 
-      result = urlfetch.fetch(url,
-        allow_truncated=True,
-        deadline=sys.maxint,
+    try:
 
-        # http://code.google.com/p/googleappengine/issues/detail?id=5686
-        headers={ 'Range': 'bytes={}-{}'.format(firstBytePos, firstBytePos + 2 ** 24 - 1) })
+      # Content-Range           = byte-content-range-spec
+      #                         / other-content-range-spec
+      # byte-content-range-spec = bytes-unit SP
+      #                           byte-range-resp-spec "/"
+      #                           ( instance-length / "*" )
+      # byte-range-resp-spec    = (first-byte-pos "-" last-byte-pos)
+      #                         / "*"
+      # instance-length         = 1*DIGIT
+      # other-content-range-spec = other-range-unit SP
+      #                            other-range-resp-spec
+      # other-range-resp-spec    = *CHAR
 
-      m.update(result.content)
+      match = re.match('[Bb][Yy][Tt][Ee][Ss]\s*\d+\s*-\s*\d+\s*/\s*(\d+)', result.headers['Content-Range'])
 
-      firstBytePos += len(result.content)
+    except KeyError:
+      pass
+
+    else:
+      if match:
+        while result.content_was_truncated or firstBytePos < int(match.group(1)):
+
+          result = urlfetch.fetch(url,
+            allow_truncated=True,
+            deadline=sys.maxint,
+
+            # http://code.google.com/p/googleappengine/issues/detail?id=5686
+            headers={ 'Range': 'bytes={}-{}'.format(firstBytePos, firstBytePos + 2 ** 24 - 1) })
+
+          digest.update(result.content)
+
+          firstBytePos += len(result.content)
 
     # Add URL to Datastore
-    object = Object(digest=m.digest(), name=name, size=firstBytePos, url=url)
+    object = Object(digest=digest.digest(), name=name, size=firstBytePos, url=url)
     object.put()
 
   return object
