@@ -104,7 +104,9 @@ def analytics():
   except KeyError:
     pass
 
-  urlfetch.fetch(url, headers=headers)
+  # Asynchronous
+  rpc = urlfetch.create_rpc()
+  urlfetch.make_fetch_call(rpc, url, headers=headers)
 
 def mintiply(url):
 
