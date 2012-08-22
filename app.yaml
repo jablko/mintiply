@@ -5,11 +5,22 @@ threadsafe: false
 version: 1
 
 handlers:
+- url: /
+  static_files: index.html
+  upload: index.html
+
+- url: /script.js
+  static_files: script.js
+  upload: script.js
+
 - url: /export
   script: export.py
 
 - url: /meta4/.+
   script: xml.py
+
+- url: /visits
+  script: visits.py
 
 - url: /.+
   script: http.py
