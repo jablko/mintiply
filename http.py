@@ -1,6 +1,8 @@
 import base64, os, re, urllib
-from mintiply import mintiply, Object
+from mintiply import analytics, mintiply, Object
 from urlparse import urlparse, urlunparse
+
+analytics()
 
 # Get URL to generate Metalink for from our path info
 url = os.environ['PATH_INFO'][1:]

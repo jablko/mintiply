@@ -1,4 +1,6 @@
-from mintiply import Object
+from mintiply import analytics, Object
+
+analytics()
 
 print 'Content-Type: application/metalink4+xml'
 

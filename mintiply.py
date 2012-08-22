@@ -20,7 +20,8 @@ qdtext='[\t !#-[\\]-~]'
 mimeCharset='[!#-&+\\-\dA-Z^-z]+'
 valueChars = '(?:%[\dA-F][\dA-F]|[!#$&+\\-.\dA-Z^-z|~])*'
 
-def mintiply(url):
+# https://developers.google.com/analytics/devguides/collection/other/mobileWebsites
+def analytics():
 
   # cookie-header = "Cookie:" OWS cookie-string OWS
   # cookie-string = cookie-pair *( ";" SP cookie-pair )
@@ -87,7 +88,7 @@ def mintiply(url):
   except KeyError:
     pass
 
-  utmUrl = 'http://www.google-analytics.com/__utm.gif?' + urllib.urlencode(params)
+  url = 'http://www.google-analytics.com/__utm.gif?' + urllib.urlencode(params)
 
   headers = {}
 
@@ -103,7 +104,9 @@ def mintiply(url):
   except KeyError:
     pass
 
-  urlfetch.fetch(utmUrl, headers=headers)
+  urlfetch.fetch(url, headers=headers)
+
+def mintiply(url):
 
   # Check Datastore if the URL was already visited.  Currently we only visit a
   # URL once, and forever remember the metadata, which assumes that the content
